@@ -7,11 +7,15 @@ void setup() {
   Wire.begin();
   Serial.begin(9600);
   Serial.println("Started: SENSATA_TESTING.ino");
+  Wire.setClock(1000);
+  Wire.setWireTimeout(3000, true);
 }
 
 void loop() {
+  Serial.println("Start loop");
   Wire.beginTransmission(ADDRESS);
   if (Wire.endTransmission() == 0) {
+    Serial.println("End transmission did not crash");
     transmit();
   } else {
     Serial.println("Cannot connect at address.");
