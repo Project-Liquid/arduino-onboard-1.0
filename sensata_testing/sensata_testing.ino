@@ -1,26 +1,46 @@
 #include <Wire.h>
 
-uint8_t ADDRESS = byte(0x6C);
+uint8_t ADDRESS = byte(0x6C); //byte(0x6C);
 uint8_t REGISTER = byte(0x00);
+uint8_t MULTIPLEXER = byte(0x70); //multiplexer test
+
+
+void tcaselect(uint8_t i) {
+  println(i);
+  if (i > 7) return;
+
+  Wire.beginTransmission(MULTIPLEXER);
+  Wire.write(1 << i);
+  Wire.endTransmission();
+}
 
 void setup() {
   Wire.begin();
   Serial.begin(9600);
   Serial.println("Started: SENSATA_TESTING.ino");
+  
+
   Wire.setClock(1000);
   Wire.setWireTimeout(3000, true);
+  
 }
 
 void loop() {
-  Serial.println("Start loop");
+  //Serial.println("--------------------------");
+  //Serial.print("Start loop with address: ");
+  //Serial.println(ADDRESS, HEX);
+  tcaselect(0);
   Wire.beginTransmission(ADDRESS);
-  if (Wire.endTransmission() == 0) {
-    Serial.println("End transmission did not crash");
+  int err = Wire.endTransmission();
+  if (err == 0) {
+    //Serial.println("End transmission did not crash");
     transmit();
   } else {
-    Serial.println("Cannot connect at address.");
+    Serial.print("Cannot connect at address. Error Code: ");
+    Serial.println(err);
   }
-  delay(1000);
+  delay(200);
+  //ADDRESS ++;
 }
 
 void transmit() {
