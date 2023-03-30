@@ -21,8 +21,9 @@ void setup() {
   Serial.println("Started: SENSATA_TESTING.ino");
 
 
-  Wire.setClock(1000);
-  Wire.setWireTimeout(3000, true);
+  Wire.setClock(10000);
+  Wire.setWireTimeout(5000, true);
+  //tcaselect(3);
 }
 
 void loop() {
