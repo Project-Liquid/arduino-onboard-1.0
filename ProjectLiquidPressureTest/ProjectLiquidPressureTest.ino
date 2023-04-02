@@ -115,6 +115,9 @@ void loop() {
   //Time:
   //Serial.println("--------------");
   //Serial.print("Time = ");
+  if (controlMode == 0 ) {
+    Serial.print("LOG");
+  }
   Serial.print(millis());
   Serial.print(",");
 
@@ -332,7 +335,7 @@ void pinDigitalWrite(String data) { // PDW
 // Demo and debug commands
 
 void echo(String data) { // ECH
-  Serial.print("LOG ");
+  //Serial.print("LOG ");
   Serial.println(data);
 }
 
