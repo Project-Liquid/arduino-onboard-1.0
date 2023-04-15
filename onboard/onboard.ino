@@ -2,10 +2,9 @@
 
 #include <Wire.h>
 
-uint8_t ADDRESS     = byte(0x6C);  // byte(0x6C);
-uint8_t REGISTER    = byte(0x00);
-uint8_t MULTIPLEXER = byte(0x70);  // multiplexer test
-int controlMode     = 0;
+uint8_t SENSATA_I2C_ADDR = byte(0x6C);  // byte(0x6C);
+uint8_t MULTIPLEXER      = byte(0x70);  // multiplexer test
+int controlMode          = 0;
 // 0 = Command line input
 // 1 = Command line input (without commands)
 // 2 = list of 1s and 0s
@@ -83,7 +82,7 @@ void loop() {
     for (int i = 0; i < 5; i++) {
         int multiErr = tcaselect(i);
         if (multiErr == 0) {
-            Wire.beginTransmission(ADDRESS);
+            Wire.beginTransmission(SENSATA_I2C_ADDR);
             int err = Wire.endTransmission();
             // Serial.print("Sensor ");
             // Serial.print(i);
@@ -116,12 +115,12 @@ int tcaselect(uint8_t i) {
 }
 
 void transmit(int i) {
-    Wire.beginTransmission(ADDRESS);
+    Wire.beginTransmission(SENSATA_I2C_ADDR);
     Wire.write(byte(0x2E));
 
     Wire.endTransmission();
 
-    Wire.requestFrom(ADDRESS, (uint8_t)4);
+    Wire.requestFrom(SENSATA_I2C_ADDR, (uint8_t)4);
 
     // if (Wire.available()) {
     //   Serial.print("Received (");
