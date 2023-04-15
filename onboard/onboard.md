@@ -4,18 +4,17 @@ Code for the onboard computer. The primary purpose of this code is to log sensor
 ## Output
 This code outputs log messages to the serial as new data becomes available. The format is as follows:
 ```
-LOG<timestamp>,[valve1,valve2,...valve9],[]
+LOG<timestamp>,valve1,valve2,...valve9,temp0,pres0,temp1,pres1,...temp4,pres4
 ```
+Where temp1, pres1 correspond to temperature and pressure readings from sensors 0 through 4:
 
-  --------------
-  Time: ######
-  Sensor 0 Temperature/Pressure (Nitrous Inlet)
-  Sensor 1 Temperature/Pressure (IPA Inlet)
-  Sensor 2 Temperature/Pressure (Nitrous Tank)
-  Sensor 3 Temperature/Pressure (IPA Tank)
-  Sensor 4 Temperature/Pressure (Nitrogen Inlet)
+  - Sensor 0:  (Nitrous Inlet)
+  - Sensor 1:  (IPA Inlet)
+  - Sensor 2:  (Nitrous Tank)
+  - Sensor 3:  (IPA Tank)
+  - Sensor 4:  (Nitrogen Inlet)
 
-Command Mode Format:
+## Commands
 
 “PDW A X Y Z….”
 PDW = PinDigitalWrite to set a relay
@@ -32,7 +31,7 @@ X, Y, Z, …. = relays you want to set
 8 = Pneumatics Line Vent Valve (normally open)
 9 = Purge Valve (normally closed)
 
-Useful Commands:
+### Useful Commands:
 - Setup (closing normally open valves) = PDW 1 3 4 5 6 8
 - Pressurizing Tanks = PDW 1 1 2
 - Stop Pressurizing Tanks = PDW 0 1 2
