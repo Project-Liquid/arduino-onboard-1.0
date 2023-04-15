@@ -3,9 +3,9 @@
 
 #include <Wire.h>
 
-uint8_t ADDRESS     = byte(0x6C);  // byte(0x6C);
+uint8_t ADDRESS      = byte(0x6C);  // byte(0x6C);
 uint8_t MPX_I2C_ADDR = byte(0x70);  // multiplexer test
-int controlMode     = 0; //TODO: remove if not using 
+int controlMode      = 0;           // TODO: remove if not using
 // 0 = Command line input
 // 1 = Command line input (without commands)
 // 2 = list of 1s and 0s
@@ -17,25 +17,25 @@ String ventCommand2 = "PDW 0 1 2 3 4 5 6 8 9";
 // Global for tracking whether a command was executed
 int errorCode = 0;
 
-const size_t numValves = 9; //
-const size_t numSensors = 5; //
+const size_t numValves  = 9;  //
+const size_t numSensors = 5;  //
 
 // array of pins for valves
-//TODO: update serial to be indexed from 0
+// TODO: update serial to be indexed from 0
 uint8_t valvePins[numValves] = {32, 33, 52, 51, 49, 50, 53, 48, 31};
-// uint8_t sensorPins[numValves] = {32, 33, 52, 51, 49, 50, 53, 48, 31}; //TODO: upadte
+
+// uint8_t sensorPins[numValves] = {32, 33, 52, 51, 49, 50, 53, 48, 31}; //TODO:
+// upadte
 
 void setup() {
     Wire.begin();
-    Serial.begin(9600); //bits per second
+    Serial.begin(9600);  // bits per second
     Serial.println("Started: onboard.ino");
 
-    Wire.setClock(1000); //set the I2C clock rate in Hz
-    Wire.setWireTimeout(3000, true); //ms
+    Wire.setClock(1000);              // set the I2C clock rate in Hz
+    Wire.setWireTimeout(3000, true);  // ms
 
-    for(size_t pin = 0; pin < 9; ++pin) {
-        pinMode(valvePins[pin], OUTPUT);
-    }
+    for (size_t pin = 0; pin < 9; ++pin) { pinMode(valvePins[pin], OUTPUT); }
 }
 
 void loop() {
@@ -55,7 +55,7 @@ void loop() {
         }
     }
 
-    //TODO; continue refactoring from here
+    // TODO; continue refactoring from here
 
     pullSensorsAndLog();
 }
@@ -94,7 +94,7 @@ void pullSensorsAndLog() {
         }
         if (i < 4) { Serial.print(","); }
     }
-    
+
     Serial.println("");
 }
 
@@ -203,9 +203,8 @@ void pinDigitalRead(String data) {  // PDR
     //   error(3);
     //   return;
     // }
-    char pin   = data.charAt(0);
-    if((pin < 0) || (pin > 8))
-    {
+    char pin = data.charAt(0);
+    if ((pin < 0) || (pin > 8)) {
         error(3);
         return;
     }
@@ -223,10 +222,9 @@ void pinDigitalWrite(String data) {  // PDW
     char dataVal = data.charAt(0);
 
     for (int pos = 2; pos < data.length(); pos += 2) {
-        char pin   = data.charAt(pos);
+        char pin = data.charAt(pos);
         // Serial.println(pin);
-        if((pin < 0) || (pin > 8))
-        {
+        if ((pin < 0) || (pin > 8)) {
             error(3);
             return;
         }
