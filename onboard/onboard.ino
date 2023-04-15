@@ -1,60 +1,52 @@
+
 #include "Arduino.h"
 
 #include <Wire.h>
 
-uint8_t SENSATA_I2C_ADDR = byte(0x6C);  // byte(0x6C);
-uint8_t MULTIPLEXER      = byte(0x70);  // multiplexer test
-int controlMode          = 0;
+uint8_t ADDRESS     = byte(0x6C);  // byte(0x6C);
+uint8_t MPX_I2C_ADDR = byte(0x70);  // multiplexer test
+int controlMode     = 0; //TODO: remove if not using 
 // 0 = Command line input
 // 1 = Command line input (without commands)
 // 2 = list of 1s and 0s
-
-unsigned int WRITE_INTERVAL = 10;
-size_t MAX_WRITE            = 63;
-int last_write              = 0;
 
 int presLimit       = 500;
 String ventCommand1 = "PDW 1 7";
 String ventCommand2 = "PDW 0 1 2 3 4 5 6 8 9";
 
-// String writeBuffer =
-// "AAAA\nBBBB\nCCCC\nDDDD\nEEEE\nFFFF\nGGGG\nHHHH\nIIII\nJJJJ\nKKKK\nLLLL\nMMMM\nNNNN\nOOOO\nPPPP\nQQQQ\nRRRR\nSSSS\nTTTT\nUUUU\nVVVV\nWWWW\nXXXX\nYYYY\nZZZZ\n";
-String writeBuffer = "";
-String cmd         = "";
-
 // Global for tracking whether a command was executed
 int errorCode = 0;
 
+const size_t numValves = 9; //
+const size_t numSensors = 5; //
+
+// array of pins for valves
+//TODO: update serial to be indexed from 0
+uint8_t valvePins[numValves] = {32, 33, 52, 51, 49, 50, 53, 48, 31};
+// uint8_t sensorPins[numValves] = {32, 33, 52, 51, 49, 50, 53, 48, 31}; //TODO: upadte
+
 void setup() {
     Wire.begin();
-    Serial.begin(9600);
-    Serial.println("Started: SENSATA_TESTING.ino");
+    Serial.begin(9600); //bits per second
+    Serial.println("Started: onboard.ino");
 
-    Wire.setClock(1000);
-    Wire.setWireTimeout(3000, true);
+    Wire.setClock(1000); //set the I2C clock rate in Hz
+    Wire.setWireTimeout(3000, true); //ms
 
-    pinMode((int8_t)31, OUTPUT);
-    pinMode((int8_t)32, OUTPUT);
-    pinMode((int8_t)33, OUTPUT);
-    pinMode((int8_t)48, OUTPUT);
-    pinMode((int8_t)49, OUTPUT);
-    pinMode((int8_t)50, OUTPUT);
-    pinMode((int8_t)51, OUTPUT);
-    pinMode((int8_t)52, OUTPUT);
-    pinMode((int8_t)53, OUTPUT);
+    for(size_t pin = 0; pin < 9; ++pin) {
+        pinMode(valvePins[pin], OUTPUT);
+    }
 }
 
 void loop() {
-    // Serial.println("--------------------------");
-    // Serial.print("Start loop with address: ");
-    // input:
+    // Get input from serial
     if (Serial.available()) {
         String input = Serial.readStringUntil('\n');
         errorCode    = 0;
         if (input.length() < 3) {
             error(1);
         } else {
-            sort(input);
+            processCommand(input);
         }
         if (errorCode != 0) {
             Serial.print("ERR");
@@ -63,17 +55,19 @@ void loop() {
         }
     }
 
-    // display:
-    // Time:
-    // Serial.println("--------------");
-    // Serial.print("Time = ");
+    //TODO; continue refactoring from here
+
+    pullSensorsAndLog();
+}
+
+void pullSensorsAndLog() {
     if (controlMode == 0) { Serial.print("LOG"); }
     Serial.print(millis());
     Serial.print(",");
 
     // printing relay states:
     for (int i = 0; i < 9; i++) {
-        String str = String(i + 1);
+        String str = String(i);
         pinDigitalRead(str);
         Serial.print(",");
     }
@@ -82,7 +76,7 @@ void loop() {
     for (int i = 0; i < 5; i++) {
         int multiErr = tcaselect(i);
         if (multiErr == 0) {
-            Wire.beginTransmission(SENSATA_I2C_ADDR);
+            Wire.beginTransmission(ADDRESS);
             int err = Wire.endTransmission();
             // Serial.print("Sensor ");
             // Serial.print(i);
@@ -100,7 +94,7 @@ void loop() {
         }
         if (i < 4) { Serial.print(","); }
     }
-
+    
     Serial.println("");
 }
 
@@ -108,19 +102,19 @@ int tcaselect(uint8_t i) {
     // Serial.println(i);
     if (i > 7) return;
 
-    Wire.beginTransmission(MULTIPLEXER);
+    Wire.beginTransmission(MPX_I2C_ADDR);
     Wire.write(1 << i);
     int err = Wire.endTransmission();
     return err;
 }
 
 void transmit(int i) {
-    Wire.beginTransmission(SENSATA_I2C_ADDR);
+    Wire.beginTransmission(ADDRESS);
     Wire.write(byte(0x2E));
 
     Wire.endTransmission();
 
-    Wire.requestFrom(SENSATA_I2C_ADDR, (uint8_t)4);
+    Wire.requestFrom(ADDRESS, (uint8_t)4);
 
     // if (Wire.available()) {
     //   Serial.print("Received (");
@@ -155,8 +149,8 @@ void transmit(int i) {
         int presValue = presMax * (reading + 16000) / 32000;
         Serial.print(presValue);
         if (i < 4 && presValue > presLimit) {
-            sort(ventCommand1);
-            sort(ventCommand2);
+            processCommand(ventCommand1);
+            processCommand(ventCommand2);
         }
         // Serial.print(" psi, ");
     }
@@ -169,7 +163,7 @@ void transmit(int i) {
     // Serial.println("");
 }
 
-void sort(String message) {
+void processCommand(String message) {
     if (controlMode == 2) {
         processList(message);
         return;
@@ -185,8 +179,6 @@ void sort(String message) {
     // compareTo returns 0 if strings match
     if (code.compareTo("ECH") == 0) {
         echo(data);
-    } else if (code.compareTo("REP") == 0) {
-        repeat(data);
     } else if (code.compareTo("PDW") == 0) {
         pinDigitalWrite(data);
     } else if (code.compareTo("PDR") == 0) {
@@ -212,39 +204,15 @@ void pinDigitalRead(String data) {  // PDR
     //   return;
     // }
     char pin   = data.charAt(0);
-    // Serial.print(pin);
-    int pinNum = getPinOnBoard(pin);
-    if (pinNum == -1) {
+    if((pin < 0) || (pin > 8))
+    {
         error(3);
         return;
     }
+    int pinNum = valvePins[pin];
     int result = digitalRead((uint8_t)pinNum);
     // Serial.print("PIN ");
     Serial.print(result);
-}
-
-int getPinOnBoard(char pin) {
-    if (pin == '1') {  // N20 pressurant line
-        return (32);
-    } else if (pin == '2') {  // IPA pressurant line
-        return (33);
-    } else if (pin == '3') {  // N20 Run Valve
-        return (52);
-    } else if (pin == '4') {  // IPA Run Valve
-        return (51);
-    } else if (pin == '5') {  // N20 Vent Valve
-        return (49);
-    } else if (pin == '6') {  // IPA Vent Valve
-        return (50);
-    } else if (pin == '7') {  // Pneumatics Line Valve
-        return (53);
-    } else if (pin == '8') {  // Pneumatics Line Vent Valve
-        return (48);
-    } else if (pin == '9') {  // Purge Valve
-        return (31);
-    } else {
-        return -1;
-    }
 }
 
 void pinDigitalWrite(String data) {  // PDW
@@ -257,11 +225,12 @@ void pinDigitalWrite(String data) {  // PDW
     for (int pos = 2; pos < data.length(); pos += 2) {
         char pin   = data.charAt(pos);
         // Serial.println(pin);
-        int pinNum = getPinOnBoard(pin);
-        if (pinNum == -1) {
+        if((pin < 0) || (pin > 8))
+        {
             error(3);
             return;
         }
+        int pinNum = valvePins[pin];
         if (dataVal == '0') {
             digitalWrite((uint8_t)pinNum, LOW);
             // Serial.print("Set pin "); Serial.print((uint8_t)pinNum);
@@ -284,24 +253,6 @@ void echo(String data) {  // ECH
     Serial.println(data);
 }
 
-void repeat(String data) {  // REP
-    if (data.length() < 2) {
-        error(3);
-        return;
-    }
-    int numTimes = data.substring(0, 2).toInt();
-    if (numTimes == 0) {
-        error(3);
-        return;
-    }
-    String toRepeat = data.substring(2);
-    if (toRepeat.length() > MAX_WRITE - 4) {
-        error(3);
-        return;
-    }
-    for (int i = 0; i < numTimes; ++i) { echo(toRepeat); }
-}
-
 void processList(String input) {
     String list[] = {"", "", "", "", "", "", "", "", "", "",
                      "", "", "", "", "", "", "", "", "", ""};
@@ -315,7 +266,7 @@ void processList(String input) {
     }
     for (int i = 0; i < 9; i++) {
         String str = String(i + 1);
-        int pinNum = getPinOnBoard(str.charAt(0));
+        int pinNum = valvePins[str.charAt(0)];
         if (list[i].charAt(0) == '0') {
             digitalWrite((uint8_t)pinNum, LOW);
             // Serial.print("Set pin "); Serial.print((uint8_t)pinNum);
